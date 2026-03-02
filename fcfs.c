@@ -2,164 +2,190 @@
 
 int main() {
     int n;
-    printf("Enter the number of processes: ");
+    printf("Enter number of processes: ");
     scanf("%d", &n);
 
-    int p[n], a[n], b[n], pr[n];
-    int ct[n], tat[n], wt[n], rt[n], done[n];
-    int pid_counter = 1;
+    int pid[n], at[n], bt[n], priority[n];
+    int ct[n], tat[n], wt[n];
+    int completed[n];
 
-    // --- Input Section ---
     for(int i = 0; i < n; i++) {
-        p[i] = pid_counter++; // Automatically assigning PID starting from 0
-        printf("\nConfiguring Process %d (Auto-assigned PID: %d):\n", i + 1, p[i]);
-        
-        printf("Enter Arrival Time : ");
-        scanf("%d", &a[i]);
-
-        printf("Enter Burst Time   : ");
-        scanf("%d", &b[i]);
-
-        printf("Enter Priority     : ");
-        scanf("%d", &pr[i]);
-
-        printf("Process values recorded successfully.\n");
+        pid[i] = i + 1;
+        printf("\nProcess P%d\n", pid[i]);
+        printf("Arrival Time: ");
+        scanf("%d", &at[i]);
+        printf("Burst Time: ");
+        scanf("%d", &bt[i]);
+        printf("Priority (lower number = higher priority): ");
+        scanf("%d", &priority[i]);
     }
 
-    // --- 1. FCFS (First Come First Served) ---
+    //FCFS
     int time = 0;
-    float avg_wt_fcfs = 0;
+    float total_wt = 0;
+
+    printf("\n\n\t FCFS \n");
+    printf("PID\tAT\tBT\tCT\tTAT\tWT\n");
+
     for(int i = 0; i < n; i++) {
-        if(time < a[i]) time = a[i];
-        ct[i] = time + b[i];
+
+        if(time < at[i])
+            time = at[i];
+
+        ct[i] = time + bt[i];
+        tat[i] = ct[i] - at[i];
+        wt[i] = tat[i] - bt[i];
+
         time = ct[i];
-        tat[i] = ct[i] - a[i];
-        wt[i] = tat[i] - b[i];
-        avg_wt_fcfs += wt[i];
+        total_wt += wt[i];
+
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n",
+               pid[i], at[i], bt[i], ct[i], tat[i], wt[i]);
     }
-    avg_wt_fcfs /= n;
 
-    printf("\n--- FCFS Scheduling Output ---\n");
-    printf("\tPID\tAT\tBT\tCT\tTAT\tWT\n");
-    for(int k=0; k<n; k++) {
-        printf("\t%d\t%d\t%d\t%d\t%d\t%d\n", p[k], a[k], b[k], ct[k], tat[k], wt[k]);
-    }
-    printf("Average Waiting Time (FCFS) = %.2f\n", avg_wt_fcfs);
+    printf("Average Waiting Time (FCFS): %.2f\n", total_wt/n);
 
 
-    // --- 2. SRTF (Shortest Remaining Time First) ---
-    for(int i = 0; i < n; i++) rt[i] = b[i];
-    int complete = 0;
+    // SJF
     time = 0;
-    float avg_wt_srtf = 0;
+    int done = 0;
+    float sjf_total = 0;
 
-    while(complete != n) {
-        int shortest = -1, min = 9999;
+    for(int i=0;i<n;i++)
+        completed[i] = 0;
+
+    while(done < n) {
+
+        int shortest = -1;
+
         for(int i = 0; i < n; i++) {
-            if(a[i] <= time && rt[i] > 0 && rt[i] < min) {
-                min = rt[i];
-                shortest = i;
+            if(at[i] <= time && completed[i] == 0) {
+                if(shortest == -1 || bt[i] < bt[shortest])
+                    shortest = i;
             }
         }
-        if(shortest == -1) { time++; continue; }
-        rt[shortest]--;
-        time++;
-        if(rt[shortest] == 0) {
-            complete++;
-            ct[shortest] = time;
-            tat[shortest] = ct[shortest] - a[shortest];
-            wt[shortest] = tat[shortest] - b[shortest];
-            avg_wt_srtf += wt[shortest];
+
+        if(shortest == -1)
+            time++;
+        else {
+            ct[shortest] = time + bt[shortest];
+            tat[shortest] = ct[shortest] - at[shortest];
+            wt[shortest] = tat[shortest] - bt[shortest];
+
+            time = ct[shortest];
+            completed[shortest] = 1;
+            done++;
         }
     }
-    avg_wt_srtf /= n;
 
-    printf("\n--- SRTF (Preemptive) Output ---\n");
-    printf("\tPID\tAT\tBT\tCT\tTAT\tWT\n");
-    for(int k=0; k<n; k++) {
-        printf("\t%d\t%d\t%d\t%d\t%d\t%d\n", p[k], a[k], b[k], ct[k], tat[k], wt[k]);
+    printf("\n\tSJF \n");
+    printf("PID\tAT\tBT\tCT\tTAT\tWT\n");
+
+    for(int i=0;i<n;i++) {
+        sjf_total += wt[i];
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n",
+               pid[i], at[i], bt[i], ct[i], tat[i], wt[i]);
     }
-    printf("Average Waiting Time (SRTF) = %.2f\n", avg_wt_srtf);
+
+    printf("Average Waiting Time (SJF): %.2f\n", sjf_total/n);
 
 
-    // --- 3. Non-Preemptive Priority ---
-    for(int i = 0; i < n; i++) done[i] = 0;
-    time = 0; complete = 0;
-    float avg_wt_priority = 0;
+    // Priority
+    time = 0;
+    done = 0;
+    float pr_total = 0;
 
-    while(complete != n) {
-        int highest = -1, maxp = -1;
+    for(int i=0;i<n;i++)
+        completed[i] = 0;
+
+    while(done < n) {
+
+        int highest = -1;
+
         for(int i = 0; i < n; i++) {
-            if(a[i] <= time && done[i] == 0 && pr[i] > maxp) {
-                maxp = pr[i];
-                highest = i;
+            if(at[i] <= time && completed[i] == 0) {
+                if(highest == -1 || priority[i] < priority[highest])
+                    highest = i;
             }
         }
-        if(highest == -1) { time++; continue; }
-        ct[highest] = time + b[highest];
-        time = ct[highest];
-        tat[highest] = ct[highest] - a[highest];
-        wt[highest] = tat[highest] - b[highest];
-        done[highest] = 1;
-        complete++;
-        avg_wt_priority += wt[highest];
+
+        if(highest == -1)
+            time++;
+        else {
+            ct[highest] = time + bt[highest];
+            tat[highest] = ct[highest] - at[highest];
+            wt[highest] = tat[highest] - bt[highest];
+
+            time = ct[highest];
+            completed[highest] = 1;
+            done++;
+        }
     }
-    avg_wt_priority /= n;
 
-    printf("\n--- Non-Preemptive Priority Output ---\n");
-    printf("\tPID\tAT\tBT\tCT\tTAT\tWT\n");
-    for(int k=0; k<n; k++) {
-        printf("\t%d\t%d\t%d\t%d\t%d\t%d\n", p[k], a[k], b[k], ct[k], tat[k], wt[k]);
+    printf("\n\tPriority \n");
+    printf("PID\tAT\tBT\tPR\tCT\tTAT\tWT\n");
+
+    for(int i=0;i<n;i++) {
+        pr_total += wt[i];
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+               pid[i], at[i], bt[i], priority[i], ct[i], tat[i], wt[i]);
     }
-    printf("Average Waiting Time (Priority) = %.2f\n", avg_wt_priority);
+
+    printf("Average Waiting Time (Priority): %.2f\n", pr_total/n);
 
 
-    // --- 4. Round Robin (Quantum = 3) ---
-    for(int i = 0; i < n; i++) rt[i] = b[i];
-    time = 0; complete = 0;
-    float avg_wt_rr = 0;
+// Round Robin
+    int quantum;
+    printf("\nEnter Time Quantum for Round Robin: ");
+    scanf("%d", &quantum);
 
-    while(complete != n) {
+    int rt[n];
+    for(int i=0;i<n;i++) {
+        rt[i] = bt[i];
+        completed[i] = 0;
+    }
+
+    time = 0;
+    done = 0;
+    float rr_total = 0;
+
+    while(done < n) {
         int executed = 0;
-        for(int i = 0; i < n; i++) {
-            if(a[i] <= time && rt[i] > 0) {
+
+        for(int i=0;i<n;i++) {
+
+            if(at[i] <= time && rt[i] > 0) {
+
                 executed = 1;
-                if(rt[i] > 3) {
-                    time += 3;
-                    rt[i] -= 3;
+
+                if(rt[i] > quantum) {
+                    time += quantum;
+                    rt[i] -= quantum;
                 } else {
                     time += rt[i];
-                    rt[i] = 0;
                     ct[i] = time;
-                    tat[i] = ct[i] - a[i];
-                    wt[i] = tat[i] - b[i];
-                    avg_wt_rr += wt[i];
-                    complete++;
+                    tat[i] = ct[i] - at[i];
+                    wt[i] = tat[i] - bt[i];
+                    rr_total += wt[i];
+                    rt[i] = 0;
+                    done++;
                 }
             }
         }
-        if(!executed) time++;
+
+        if(!executed)
+            time++;
     }
-    avg_wt_rr /= n;
 
-    printf("\n--- Round Robin (Quantum = 3) Output ---\n");
-    printf("\tPID\tAT\tBT\tCT\tTAT\tWT\n");
-    for(int k=0; k<n; k++) {
-        printf("\t%d\t%d\t%d\t%d\t%d\t%d\n", p[k], a[k], b[k], ct[k], tat[k], wt[k]);
+    printf("\n\tRound Robin \n");
+    printf("PID\tAT\tBT\tCT\tTAT\tWT\n");
+
+    for(int i=0;i<n;i++) {
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n",
+               pid[i], at[i], bt[i], ct[i], tat[i], wt[i]);
     }
-    printf("Average Waiting Time (RR) = %.2f\n", avg_wt_rr);
 
-
-    // --- Final Comparison ---
-    printf("\n--- Overall Comparison ---\n");
-    float min_val = avg_wt_fcfs;
-    char algo_name[20] = "FCFS";
-
-    if(avg_wt_srtf < min_val) { min_val = avg_wt_srtf; sprintf(algo_name, "SRTF"); }
-    if(avg_wt_priority < min_val) { min_val = avg_wt_priority; sprintf(algo_name, "Priority"); }
-    if(avg_wt_rr < min_val) { min_val = avg_wt_rr; sprintf(algo_name, "Round Robin"); }
-
-    printf("The best algorithm for this set is %s with an Average WT of %.2f\n", algo_name, min_val);
+    printf("Average Waiting Time (Round Robin): %.2f\n", rr_total/n);
 
     return 0;
 }
